@@ -1,0 +1,4 @@
+<manifest projecttype="ACCOUNTCUSTOMIZATION">
+  <projectname>OTP-8879-monthly-overdue-reminder</projectname>
+  <frameworkversion>1.0</frameworkversion>
+</manifest>
