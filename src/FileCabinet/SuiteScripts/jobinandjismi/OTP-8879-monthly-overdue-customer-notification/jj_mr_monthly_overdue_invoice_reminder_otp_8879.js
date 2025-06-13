@@ -84,10 +84,10 @@ define(["N/email", "N/file", "N/log", "N/record", "N/search"], /**
     let cusData = customerData(cusId);
     let cusEmail = cusData.email;
     let cusSalesRep = cusData.salesRep;
+    let cusSalesRepName = cusData.salesRepName;
     let empSalesRep = getSalesRepDetails(cusSalesRep);
     let inActive = empSalesRep.isInactive;
     log.debug("inactive:",inActive);
-    let cusSalesRepName = cusData.salesRepName;
     log.debug("salesrep from customer:",cusSalesRep);
    
     let daysOverdue = calculateDaysBetween(dueDate);
@@ -159,7 +159,7 @@ define(["N/email", "N/file", "N/log", "N/record", "N/search"], /**
   recipients: reduceContext.key,
   subject: "Monthly Overdue Invoice Reminder",
   body: `
-    Dear ${firstInvoice.cusName}\n,
+    Dear ${firstInvoice.cusName},\n
 
 
     I hope this email finds you well.
@@ -173,7 +173,7 @@ define(["N/email", "N/file", "N/log", "N/record", "N/search"], /**
 
     Best regards, 
 
-    ${sender === -5 ? "NetSuite Admin" : firstInvoice.cusSalesRepName}
+    ${sender === -5 ? "Cathy Cadigan" : firstInvoice.cusSalesRepName}
   `,
   attachments: [csvFile],
 });
@@ -270,34 +270,42 @@ define(["N/email", "N/file", "N/log", "N/record", "N/search"], /**
    */
 function customerData(cusId) {
     try {
-        let customerRecord = record.load({
-            type: record.Type.CUSTOMER,
-            id: cusId
+        let customerData = search.lookupFields({
+            type: search.Type.CUSTOMER,
+            id: cusId,
+            columns: ["email", "salesrep"]
         });
 
-        let email = customerRecord.getValue({ fieldId: "email" }) || "Not Available";
-        let salesRep = customerRecord.getValue({ fieldId: "salesrep" }) || " ";
-        let salesRepName = customerRecord.getText({ fieldId: "salesrep" }) || " ";
-        log.debug("salesrep:",salesRep)
+        let email = customerData.email || "Not Available";
+        let salesRep = customerData.salesrep[0]?.value || " ";
+        let salesRepName = customerData.salesrep[0]?.text || " ";
 
-        return { email, salesRep ,salesRepName};
+        log.debug("salesrep:", salesRep);
+
+        return { email, salesRep, salesRepName };
     } catch (error) {
         log.debug("Error", error.message);
         return { email: "Error Retrieving Data", salesRep: "Error Retrieving Data" };
     }
 }
-
+/**
+ * Retrieves the inactivity status of a sales representative.
+ *
+ * @param {string|number} salesRepId - The internal ID of the sales representative.
+ * @returns {Object} An object containing the inactivity status.
+ * @property {boolean} isInactive - Indicates whether the sales representative is inactive.
+ */
 function getSalesRepDetails(salesRepId) {
     try {
-        let salesRepRecord = record.load({
-            type: record.Type.EMPLOYEE,
-            id: salesRepId
+        let salesRepRecord = search.lookupFields({
+            type: search.Type.EMPLOYEE,
+            id: salesRepId,
+            columns : ['isinactive']
         });
 
-        let isInactive = salesRepRecord.getValue({ fieldId: "isinactive" });
-        let salesRepName = salesRepRecord.getValue({ fieldId: "firstname" }) + " " + salesRepRecord.getValue({ fieldId: "lastname" });
-
-        return { isInactive, salesRepName };
+        let isInactive = salesRepRecord.isinactive;
+        
+        return { isInactive};
     } catch (error) {
         log.debug("Error", error.message);
         return { isInactive: true, salesRepName: "Not Available" };
